@@ -1,0 +1,14 @@
+# ── Core dependencies ─────────────────────────────────
+# TLS impersonation HTTP client — the heart of the scraper
+# https://github.com/yifeikong/curl_cffi
+curl-cffi>=0.5.10,<0.8.0
+
+# Redis client for job queue consumption + Pub/Sub
+redis>=5.0,<6.0
+
+# ── Development / debugging ───────────────────────────
+# HTTPie for manual API testing
+httpie>=3.2,<4.0
+
+# python-dotenv to load .env in development
+python-dotenv>=1.0,<2.0

@@ -1,0 +1,66 @@
+services:
+
+  # ── Redis (message broker for BullMQ + Pub/Sub) ─────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data:/data
+
+  # ── Node.js backend (Express + Socket.io + BullMQ) ──
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "4000:4000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SERVER_PORT=4000
+      - CORS_ORIGIN=*
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Python scraping worker (scale horizontally) ─────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SCRAPER_PROXY_POOL=${SCRAPER_PROXY_POOL:-}
+      - PROXY_COOLDOWN_SECONDS=30
+      - MAX_RETRIES=3
+      - WORKER_ID=0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # Scale this service for more concurrency:
+    #   docker compose up --scale worker=4
+
+  # ── Vite dev server (frontend) ──────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_WS_URL=http://backend:4000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis_data:

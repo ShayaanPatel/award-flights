@@ -1,0 +1,20 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install curl_cffi build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY worker/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY worker/ ./worker/
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+CMD ["python", "-m", "worker.worker"]
